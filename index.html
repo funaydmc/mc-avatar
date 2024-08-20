@@ -1,0 +1,216 @@
+<div id="main">
+    <input type="text" name="url" id="url" value="https://namemc.com/skin/30af0d8f06cdc030">
+    <canvas width="128" height="128"></canvas>
+</div>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+    #main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+    }
+    input {
+        width: 320px;
+        margin-bottom: 10px;
+    }
+    canvas {
+      border: 1px solid black;
+    }
+</style>
+<script>
+    async function update() {
+    var input = document.getElementById("url").value;
+
+    if (input.includes("namemc.com/skin")) {
+        input = input.replace("namemc.com/skin", "s.namemc.com/i")+".png";
+    }
+
+    var img = await getImage(input);
+    var canvas = document.getElementsByTagName("canvas");
+    var ctx = canvas[0].getContext("2d");
+    ctx.clearRect(0, 0, canvas[0].width, canvas[0].height);
+    const leftArm = new OffscreenCanvas(37, 58);
+    var l = new ImageBuilder(leftArm.getContext('2d'), img);
+    {
+        l.copy(44, 20, 4, 12);
+        l.size(18, 49);
+        l.paste(5, 5);
+        l.copy(44, 36, 4, 12);
+        l.size(21, 52);
+        l.paste(3, 5);
+        l.border(5, true);
+    }
+
+    const body = new OffscreenCanvas(62, 59);
+    var b = new ImageBuilder(body.getContext('2d'), img);
+    {
+        b.copy(20, 20, 8, 12)
+        b.size(52, 49);
+        b.paste(5, 5);
+        b.copy(20, 36, 8, 12)
+        b.size(52, 49);
+        b.paste(5, 5);
+        b.border(5, true);
+    }
+    
+    const head = new OffscreenCanvas(94, 74);
+    var h = new ImageBuilder(head.getContext('2d'), img);
+    {
+        h.copy(8, 8, 8, 8);
+        h.size(52, 55);
+        h.paste(9, 9);
+        h.copy(16, 8, 8, 8);
+        h.size(27, 55);
+        h.bright(-45);
+        h.paste(61, 9);
+        h.copy(40, 8, 8, 8);
+        h.size(56, 64);
+        h.paste(5, 5);
+        h.copy(48, 8, 8, 8);
+        h.size(27, 64);
+        h.bright(-45);
+        h.paste(61, 5);
+        h.border(5, true);
+    }
+
+    const rightArm = new OffscreenCanvas(37, 58);
+    var r = new ImageBuilder(rightArm.getContext('2d'), img);
+    {
+        r.copy(36, 52, 4, 12);
+        r.size(18, 49);
+        r.paste(5, 5);
+        r.copy(52, 52, 4, 12);
+        r.size(21, 52);
+        r.paste(3, 5);
+        r.copy(42, 52, 4, 12);
+        r.size(9, 49);
+        r.bright(-45);
+        r.paste(23, 5);
+        r.copy(56, 52, 4, 12);
+        r.size(12, 52);
+        r.bright(-45);
+        r.paste(18, 5);
+        r.border(5, true);
+    }
+    const offset = [6, 3];
+    ctx.drawImage(leftArm,  0  + offset[0] , 64 + offset[1]);
+    ctx.drawImage(body,     24 + offset[0] , 64 + offset[1]);
+    ctx.drawImage(head,     14 + offset[0] , 0  + offset[1]);
+    ctx.drawImage(rightArm, 81 + offset[0] , 64 + offset[1]);
+    ctx.drawImage(rightArm, 81 + offset[0] , 64 + offset[1]);
+
+}
+
+class ImageBuilder {
+    data = null;
+    constructor(ctx, ref){
+        this.ctx = ctx;
+        this.ref = ref;
+        this.ctx.willReadFrequently = true;
+        this.ref.willReadFrequently = true;
+    }
+    
+    copy(x, y, width, height){
+        this.data = this.ref.getImageData(x, y, width, height);
+    }
+
+    size(width, height){
+        this.data = resize(this.data, width, height);
+    }
+
+    bright(value){
+        this.data = brightness(this.data, value);
+    }
+
+    border(t = 10, edge = false){
+        var width = this.ctx.canvas.width;
+        var height = this.ctx.canvas.height;
+        var data = this.ctx.getImageData(0, 0, width, height);
+
+        var shadow = new OffscreenCanvas(width, height);
+        var sCtx = shadow.getContext("2d");
+        sCtx.putImageData(brightness(data, -255), 0, 0);
+
+        var temp = new OffscreenCanvas(width, height);
+        var tempCtx = temp.getContext("2d");
+        tempCtx.putImageData(data, 0, 0);
+        
+        if (edge) {
+            for (let i = -t; i < t; i++) {
+                for (let j = -t; j < t; j++) {
+                    this.ctx.drawImage(shadow, i, j);
+                }
+            }
+        } else {
+            for (var i = -t; i < t; i ++) {
+                this.ctx.drawImage(shadow, i, 0);
+                this.ctx.drawImage(shadow, 0, i);
+            }
+        }
+
+        this.ctx.drawImage(temp, 0, 0);
+    }
+
+    paste(x, y){
+        var temp = new OffscreenCanvas(this.data.width, this.data.height);
+        var tempCtx = temp.getContext("2d");
+        tempCtx.putImageData(this.data, 0, 0);
+        this.ctx.drawImage(temp, x, y);
+    }
+}
+
+function toCanvas(data) {
+    var canvas = new OffscreenCanvas(data.width, data.height);
+    var ctx = canvas.getContext("2d");
+    ctx.putImageData(data, 0, 0);
+    return canvas;
+}
+
+function resize(data, width, height){
+    var newData = new Uint8ClampedArray(width*height*4);
+    for (var i = 0; i < height; i++) {
+        for (var j = 0; j < width; j++) {
+            for (var k = 0; k < 4; k++) {
+                var x = Math.floor(j * data.width / width);
+                var y = Math.floor(i * data.height / height);
+                var index = (y * data.width + x) * 4 + k;
+                newData[(i * width + j) * 4 + k] = data.data[index];
+            }
+        }
+    }
+    return new ImageData(newData, width, height);
+}
+
+function brightness(data, value) {
+    var newData = data.data.map((v, i) => {
+        if (i % 4 == 3) return v;
+        return Math.min(255, Math.max(0, v + value));
+    });
+    return new ImageData(newData, data.width, data.height);
+}
+
+function getImage(url) {
+    return new Promise((resolve, reject) => {
+        var img = new Image();
+        img.src = url;
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = new OffscreenCanvas(img.width, img.height);
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            resolve(ctx);
+        }
+        img.onerror = reject;
+    });
+}
+
+document.getElementById("url").addEventListener("input", update);
+update();
+</script>

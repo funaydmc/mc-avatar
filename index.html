@@ -8,13 +8,17 @@
 <body>
 
 <div id="main">
-    <input type="text" name="url" id="url" value="https://namemc.com/skin/30af0d8f06cdc030">
-    <canvas width="128" height="128"></canvas>
+    <div>
+        <input type="text" name="url" id="url" value="https://namemc.com/skin/67c9d1320a58aa00">
+        <button onclick="update()" >generate</button>
+    </div>
+    <div id="container"></div>
 </div>
 <style>
     body {
         margin: 0;
         font-family: monospace;
+        background: #3f3f3f;
     }
     #main {
         display: flex;
@@ -28,21 +32,29 @@
         margin-bottom: 10px;
     }
     canvas {
-      border: 1px solid black;
+      border: 3px solid rgb(103, 255, 103);
+      background: white;
+    }
+    img {
+        background: url(./bgr.png);
+        background-size: cover;
     }
 </style>
 <script>
+    var previous_input = ""
     async function update() {
     var input = document.getElementById("url").value;
+    if (input == previous_input) return;
+    else previous_input = input;
 
     if (input.includes("namemc.com/skin")) {
         input = input.replace("namemc.com/skin", "s.namemc.com/i")+".png";
     }
 
     var img = await getImage(input);
-    var canvas = document.getElementsByTagName("canvas");
-    var ctx = canvas[0].getContext("2d");
-    ctx.clearRect(0, 0, canvas[0].width, canvas[0].height);
+    var canvas = new OffscreenCanvas(128,128);
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     const leftArm = new OffscreenCanvas(37, 58);
     var l = new ImageBuilder(leftArm.getContext('2d'), img);
     {
@@ -113,6 +125,10 @@
     ctx.drawImage(rightArm, 81 + offset[0] , 64 + offset[1]);
     ctx.drawImage(rightArm, 81 + offset[0] , 64 + offset[1]);
 
+    var result = new Image()
+    var blob = await canvas.convertToBlob()
+    result.src = URL.createObjectURL(blob);
+    document.getElementById("container").appendChild(result)
 }
 
 class ImageBuilder {
@@ -204,7 +220,6 @@ function brightness(data, value) {
 }
 
 async function getImage(url) {
-    // url = encodeURIComponent(url)
     const response = await fetch(`https://proxy.cors.sh/${url}`, {mode: 'cors'});
     const blob = await response.blob();
     const img = await createImageBitmap(blob);
@@ -214,7 +229,6 @@ async function getImage(url) {
     return ctx;
 }
 
-document.getElementById("url").addEventListener("input", update);
 update();
 </script>
 
